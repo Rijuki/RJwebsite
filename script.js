@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Form submitted:', data);
             
             // Show temporary success message
-            alert('Thank you for your message! We will get back to you soon.');
+            alert('Thank you for your quantum inquiry! Our quantum technology consultants will get back to you soon.');
             
             // Reset form
             contactForm.reset();
