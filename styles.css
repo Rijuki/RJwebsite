@@ -33,6 +33,8 @@
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 html { scroll-behavior: smooth; scroll-padding-top: 92px; -webkit-text-size-adjust: 100%; }
+/* Without JS the header isn't fixed, so anchor offsets must collapse to 0 */
+html:not(.js) { scroll-padding-top: 0; }
 
 body {
     background: var(--ink);
@@ -188,6 +190,7 @@ code {
     font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase;
     color: var(--gold);
     display: flex; align-items: center; gap: 14px;
+    flex-wrap: wrap;          /* long mono + wide tracking overflows on narrow screens */
     margin-bottom: 34px;
 }
 .eyebrow .dot { width: 3px; height: 3px; background: var(--gold-dim); border-radius: 50%; }
@@ -560,10 +563,14 @@ code {
 
 /* ── REVEAL (defined early so component :hover rules keep priority) ── */
 
-.will-reveal { opacity: 0; transform: translateY(22px); }
-.will-reveal.in { opacity: 1; transform: none; }
+/* Hidden state applies ONLY when JS is confirmed present (.js on <html>).
+   If script.js is blocked or errors, everything stays visible. */
+.js .will-reveal { opacity: 0; transform: translateY(22px); }
+.js .will-reveal.in { opacity: 1; transform: none; }
 
-.reveal { opacity: 0; transform: translateY(26px); }
+/* Hero is above the fold: animate with pure CSS so it never depends on JS.
+   (Below-fold sections use .will-reveal, which JS adds itself — inherently safe.) */
+.js .reveal { animation: riseIn 0.9s var(--ease) both; }
 .reveal.in {
     opacity: 1; transform: none;
     transition: opacity 0.85s var(--ease), transform 0.85s var(--ease);
@@ -572,12 +579,28 @@ code {
 .reveal.in:nth-of-type(3) { transition-delay: 0.16s; }
 .reveal.in:nth-of-type(4) { transition-delay: 0.24s; }
 
+@keyframes riseIn {
+    from { opacity: 0; transform: translateY(26px); }
+    to   { opacity: 1; transform: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-    .will-reveal, .reveal { opacity: 1; transform: none; }
+    .js .will-reveal, .js .reveal { opacity: 1; transform: none; animation: none; }
 }
 
 /* Restore hover transforms that .will-reveal.in would otherwise shadow */
 .method-card.will-reveal.in:hover { transform: translateY(-4px); }
+
+/* ── NO-JS FALLBACKS ───────────────────────────────────── */
+/* Without scripting: no sticky-header offset needed, no mobile drawer,
+   and every animated element is simply visible. */
+html:not(.js) .nav { position: static; transform: none; opacity: 1; }
+html:not(.js) .hamburger { display: none; }
+html:not(.js) .header { position: static; }
+html:not(.js) .gold-underline::after { transform: scaleX(1); }
+html:not(.js) .marquee-track { animation: none; }
+html:not(.js) .form-status { display: none; }
+html:not(.js) .contact-form .btn-full { pointer-events: none; opacity: 0.5; }
 
 /* ── RESPONSIVE ────────────────────────────────────────── */
 
@@ -607,6 +630,30 @@ code {
     }
     .nav.open { opacity: 1; transform: none; pointer-events: auto; }
     body.nav-open { overflow: hidden; }
+
+    /* No JS → no drawer behaviour. Show the nav as a plain stacked list under the logo. */
+    html:not(.js) .header-inner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+      padding-bottom: 16px;
+    }
+    html:not(.js) .nav {
+        position: static;
+        background: none;
+        border-bottom: 0;
+        padding: 0;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 10px 18px;
+    }
+    html:not(.js) .nav a {
+        border-bottom: 0;
+        padding: 2px 0;
+        font-size: 13px;
+        display: inline-flex;
+    }
+
     .nav a {
         justify-content: space-between;
         padding: 15px 0;
@@ -636,6 +683,8 @@ code {
     .also-note { padding: 18px 20px; }
     .also-note .text-link { display: inline-flex; margin-left: 0; margin-top: 8px; }
     .marquee-track { animation-duration: 30s; }
+    /* Tracking this wide pushes the eyebrow past the viewport on small phones */
+    .eyebrow { font-size: 9.5px; letter-spacing: 0.16em; gap: 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

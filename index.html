@@ -15,6 +15,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <!-- JS flag: CSS only hides pre-animation content when scripting is confirmed.
+         Without this, a failed/blocked script leaves the page permanently invisible. -->
+    <script>document.documentElement.className += ' js';</script>
 </head>
 <body>
 
@@ -361,5 +364,13 @@
     </footer>
 
     <script src="script.js"></script>
+    <noscript>
+        <style>
+            /* Belt and braces: even if the .js flag is set but the script
+               throws, force everything visible. */
+            .will-reveal, .reveal { opacity: 1 !important; transform: none !important; }
+            .btn-full { pointer-events: none; opacity: 0.5; }
+        </style>
+    </noscript>
 </body>
 </html>
