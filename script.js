@@ -1,139 +1,175 @@
-// DOM Content Loaded Event
-document.addEventListener('DOMContentLoaded', function() {
-    // Sticky Header
-    const header = document.querySelector('.header');
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 100) {
-            header.classList.add('scrolled');
-        } else {
-            header.classList.remove('scrolled');
+/* Renee Julian S.L. — site behaviour */
+(function () {
+    'use strict';
+
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    document.addEventListener('DOMContentLoaded', function () {
+
+        /* ── Header state ───────────────────────────────── */
+        var header = document.querySelector('.header');
+        var nav = document.getElementById('nav');
+        var hamburger = document.getElementById('hamburger');
+
+        function onScroll() {
+            header.classList.toggle('scrolled', window.scrollY > 40);
         }
-    });
+        onScroll();
+        window.addEventListener('scroll', onScroll, { passive: true });
 
-    // Mobile Menu Toggle
-    const hamburger = document.querySelector('.hamburger');
-    const nav = document.querySelector('.nav');
-    
-    hamburger.addEventListener('click', () => {
-        nav.classList.toggle('active');
-        
-        // Animate hamburger
-        hamburger.classList.toggle('active');
-    });
-
-    // Close mobile menu when clicking on a link
-    const navLinks = document.querySelectorAll('.nav a');
-    navLinks.forEach(link => {
-        link.addEventListener('click', () => {
-            nav.classList.remove('active');
+        /* ── Mobile nav ─────────────────────────────────── */
+        function closeNav() {
+            nav.classList.remove('open');
             hamburger.classList.remove('active');
-        });
-    });
+            hamburger.setAttribute('aria-expanded', 'false');
+            document.body.classList.remove('nav-open');
+        }
 
-    // Smooth Scrolling for Navigation Links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            const targetId = this.getAttribute('href');
-            const targetElement = document.querySelector(targetId);
-            
-            if (targetElement) {
-                window.scrollTo({
-                    top: targetElement.offsetTop - 80, // Account for fixed header
-                    behavior: 'smooth'
+        function openNav() {
+            nav.classList.add('open');
+            hamburger.classList.add('active');
+            hamburger.setAttribute('aria-expanded', 'true');
+            document.body.classList.add('nav-open');
+        }
+
+        hamburger.addEventListener('click', function () {
+            if (nav.classList.contains('open')) { closeNav(); } else { openNav(); }
+        });
+
+        nav.addEventListener('click', function (e) {
+            if (e.target.closest('a')) closeNav();
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeNav();
+        });
+
+        // Close the menu if the viewport grows back to desktop
+        var desktop = window.matchMedia('(min-width: 861px)');
+        function onBreakpoint(e) { if (e.matches) closeNav(); }
+        if (typeof desktop.addEventListener === 'function') {
+            desktop.addEventListener('change', onBreakpoint);
+        } else if (typeof desktop.addListener === 'function') {
+            desktop.addListener(onBreakpoint);
+        }
+
+        /* ── Reveal on scroll ───────────────────────────── */
+        var revealTargets = document.querySelectorAll(
+            '.hero .reveal, .project, .service, .method-card, .num, .also-note'
+        );
+
+        // Stagger siblings within each group before observing
+        ['.numbers-grid > .num', '.method-grid > .method-card', '.service-list > .service']
+            .forEach(function (sel) {
+                document.querySelectorAll(sel).forEach(function (el, i) {
+                    el.style.transition =
+                        'opacity .7s var(--ease), transform .7s var(--ease), ' +
+                        'border-color .35s var(--ease), background .3s var(--ease), ' +
+                        'padding-left .35s var(--ease)';
+                    el.style.transitionDelay = (Math.min(i, 5) * 70) + 'ms';
                 });
-            }
-        });
-    });
+            });
 
-    // Form Submission
-    const contactForm = document.getElementById('contactForm');
-    if (contactForm) {
-        contactForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // Get form data
-            const formData = new FormData(contactForm);
-            const data = Object.fromEntries(formData);
-            
-            // Log form submission to console
-            console.log('Form submitted:', data);
-            
-            // Show temporary success message
-            alert('Thank you for your quantum inquiry! Our quantum technology consultants will get back to you soon.');
-            
-            // Reset form
-            contactForm.reset();
-        });
-    }
+        if (reduceMotion || !('IntersectionObserver' in window)) {
+            revealTargets.forEach(function (el) {
+                el.classList.add('in');
+                el.style.opacity = '';
+                el.style.transform = '';
+            });
+        } else {
+            // Hidden state lives in CSS (.project/.service/... start hidden);
+            // .in flips it. Never inline opacity — that would override the class.
+            document.querySelectorAll('.project, .service, .method-card, .num, .also-note')
+                .forEach(function (el) { el.classList.add('will-reveal'); });
 
-    // Intersection Observer for Scroll Animations
-    const observerOptions = {
-        root: null,
-        rootMargin: '0px',
-        threshold: 0.1
-    };
+            var io = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('in');
+                        io.unobserve(entry.target);
+                    }
+                });
+            }, { rootMargin: '0px 0px -6% 0px', threshold: 0.06 });
 
-    const observer = new IntersectionObserver((entries, observer) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('appear');
-                observer.unobserve(entry.target);
-            }
-        });
-    }, observerOptions);
+            revealTargets.forEach(function (el) { io.observe(el); });
 
-    // Observe elements that should animate on scroll
-    document.querySelectorAll('.service-card, .testimonial-card, .about-content, .contact-content').forEach(el => {
-        el.classList.add('fade-in');
-        observer.observe(el);
-    });
+            // Safety net: never leave content invisible if IO misbehaves
+            setTimeout(function () {
+                revealTargets.forEach(function (el) { el.classList.add('in'); });
+            }, 2500);
+        }
 
-    // Initialize animations for hero content
-    const heroContent = document.querySelector('.hero-content');
-    if (heroContent) {
-        setTimeout(() => {
-            heroContent.classList.add('appear');
-        }, 300);
-    }
-});
+        /* ── Active nav link ────────────────────────────── */
+        var sections = Array.prototype.slice.call(
+            document.querySelectorAll('main section[id]')
+        );
+        var navLinks = Array.prototype.slice.call(document.querySelectorAll('.nav a'));
 
-// Additional utility functions
-// Function to check if element is in viewport
-function isElementInViewport(el) {
-    const rect = el.getBoundingClientRect();
-    return (
-        rect.top >= 0 &&
-        rect.left >= 0 &&
-        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-        rect.right <= (window.innerWidth || document.documentElement.clientWidth)
-    );
-}
+        function setActive() {
+            var y = window.scrollY + 140;
+            var current = sections.length ? sections[0].id : null;
 
-// Function to handle active navigation highlighting
-function updateActiveNav() {
-    const sections = document.querySelectorAll('section[id]');
-    const navLinks = document.querySelectorAll('.nav a');
-    
-    let currentSection = '';
-    
-    sections.forEach(section => {
-        const sectionTop = section.offsetTop;
-        const sectionHeight = section.clientHeight;
-        
-        if (pageYOffset >= (sectionTop - 100)) {
-            currentSection = section.getAttribute('id');
+            sections.forEach(function (sec) {
+                if (sec.offsetTop <= y) current = sec.id;
+            });
+
+            navLinks.forEach(function (a) {
+                a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+            });
+        }
+        setActive();
+        window.addEventListener('scroll', setActive, { passive: true });
+
+        /* ── Footer year ────────────────────────────────── */
+        var year = document.getElementById('year');
+        if (year) year.textContent = String(new Date().getFullYear());
+
+        /* ── Contact form ───────────────────────────────── */
+        var form = document.getElementById('contactForm');
+        var status = document.getElementById('formStatus');
+
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                var name = form.name.value.trim();
+                var email = form.email.value.trim();
+                var message = form.message.value.trim();
+
+                [[form.name, name], [form.email, email]].forEach(function (pair) {
+                    pair[0].closest('.field').classList.remove('invalid');
+                });
+
+                if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+                    if (!name) form.name.closest('.field').classList.add('invalid');
+                    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+                        form.email.closest('.field').classList.add('invalid');
+                    }
+                    if (status) status.textContent = 'Please add a name and a valid email address.';
+                    return;
+                }
+
+                var subject = form.subject.value.trim() || 'Quantum enquiry';
+                var body = message || '(no detail provided)';
+
+                window.location.href =
+                    'mailto:quantum@reneejulian.com' +
+                    '?subject=' + encodeURIComponent('[Renee Julian] ' + subject) +
+                    '&body=' + encodeURIComponent(
+                        'Name: ' + name + '\nEmail: ' + email + '\n\n' + body
+                    );
+
+                if (status) {
+                    status.textContent =
+                        'Opening your email client — if nothing happens, write to quantum@reneejulian.com.';
+                }
+                form.reset();
+            });
+
+            form.addEventListener('input', function (e) {
+                var field = e.target.closest('.field');
+                if (field) field.classList.remove('invalid');
+            });
         }
     });
-    
-    navLinks.forEach(link => {
-        link.classList.remove('active');
-        if (link.getAttribute('href') === `#${currentSection}`) {
-            link.classList.add('active');
-        }
-    });
-}
-
-// Add event listener for updating active nav
-window.addEventListener('scroll', updateActiveNav);
+})();
